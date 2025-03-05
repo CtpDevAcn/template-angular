@@ -32,7 +32,7 @@ spec:
         appName:
           title: App name
           type: string
-          default: sample-spring-boot-app
+          default: sample-angular-app
         domainName:
           title: Name of the domain object
           type: string
