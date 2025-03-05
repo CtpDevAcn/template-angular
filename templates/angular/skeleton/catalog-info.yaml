@@ -11,7 +11,7 @@ metadata:
     - node
     - html
     - scss
-    - angular material
+    - material
 spec:
   type: webapp
   owner: group:dev-team
