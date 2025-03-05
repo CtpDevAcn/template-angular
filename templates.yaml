@@ -1,0 +1,9 @@
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: backstage-angular-collection
+  description: A collection of Example Software Templates for frontend on Backstage
+spec:
+  type: url
+  targets:
+    - templates/angular/template.yaml

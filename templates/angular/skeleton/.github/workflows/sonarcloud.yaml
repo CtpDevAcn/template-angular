@@ -1,0 +1,60 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - master # the name of your main branch
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Set up JDK 21
+        uses: actions/setup-java@v1
+        with:
+          java-version: 21
+      - name: Cache SonarQube packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: -sonar
+          restore-keys: -sonar
+      - name: Create SonarCloud Organization
+        env:
+          SONAR_TOKEN: 33d3544210506c33624adb2c4ea8105ded3f861d
+          ORG_NAME: ${{ values.orgName }}
+        run: |
+          RESPONSE=$(curl -X POST "https://sonarcloud.io/api/organizations/create?name=$ORG_NAME" \
+            --user "$SONAR_TOKEN:" \
+            -s -o /dev/null -w "%{http_code}")
+          if [ "$RESPONSE" != "200" ] && [ "$RESPONSE" != "400" ]; then
+            echo "Failed to create organization on SonarCloud. HTTP Status: $RESPONSE"
+            exit 1
+          fi
+      - name: Convert ORG_NAME to lowercase
+        run: echo "ORG_NAME=$(echo '${{ values.orgName }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV  
+      - name: Create SonarCloud Project
+        env:
+          SONAR_TOKEN: 33d3544210506c33624adb2c4ea8105ded3f861d
+          PROJ_NAME: ${{ values.appName }}
+          APP_NAME: ${{ values.appName }}
+        run: |
+          RESPONSE=$(curl -X POST "https://sonarcloud.io/api/projects/create?organization=$ORG_NAME&project=$PROJ_NAME&name=$APP_NAME" \
+            --user "$SONAR_TOKEN:" \
+            -s -o /dev/null -w "%{http_code}")
+          if [ "$RESPONSE" != "200" ] && [ "$RESPONSE" != "400" ]; then
+            echo "Failed to create project on SonarCloud. HTTP Status: $RESPONSE"
+            exit 1
+          fi
+      - name: Build and analyze
+        env:
+          SONAR_HOST_URL: https://sonarcloud.io
+          SONAR_TOKEN: 33d3544210506c33624adb2c4ea8105ded3f861d
+        run: mvn verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=${{ values.appName }}
